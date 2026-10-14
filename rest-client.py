@@ -11,12 +11,12 @@ import random
 import argparse
 
 
-def doRawImage(addr, debug=False):
+def doRawImage(addr, img, debug=False):
 
     # prepare headers for http request
     headers = {'content-type': 'image/png'}
 
-    img = open('Flatirons_Winter_Sunrise_edit_2.jpg', 'rb').read()
+    # img = open('Flatirons_Winter_Sunrise_edit_2.jpg', 'rb').read()
 
     # send http request with image and receive response
     image_url = addr + '/api/rawimage'
@@ -40,12 +40,39 @@ def doAdd(addr, debug=False):
         print(json.loads(response.text))
 
 
-def doDotProduct(addr, debug=False):
-    pass
+def doDotProduct(addr, a, b, debug=False):
+    # a = [random.random() for _ in range(100)]
+    # b = [random.random() for _ in range(100)]
+
+    payload = {'a': a, 'b': b}
+
+    response = requests.post(
+        addr + '/api/dotproduct',
+        json=payload
+    )
+
+    response.raise_for_status()
+
+    if debug:
+        print("Response:", response.json())
+        print("Expected:", sum(x * y for x, y in zip(a, b)))
 
 
-def doJsonImage(addr, debug=False):
-    pass
+def doJsonImage(addr, encoded, debug=False):
+    # with open('Flatirons_Winter_Sunrise_edit_2.jpg', 'rb') as f:
+    #     img = f.read()
+
+    # encoded = base64.b64encode(img).decode('ascii')
+
+    response = requests.post(
+        addr + '/api/jsonimage',
+        json={'image': encoded}
+    )
+
+    response.raise_for_status()
+
+    if debug:
+        print("Response:", response.json())
 
 
 # ---------------------------------------------------------
@@ -97,6 +124,17 @@ addr = f"http://{args.host}:{args.port}"
 
 print(f"Running {args.reps} reps against {addr}")
 
+# Prepare inputs before timing
+if args.cmd == 'dotProduct':
+    a = [random.random() for _ in range(100)]
+    b = [random.random() for _ in range(100)]
+
+elif args.cmd in ('rawImage', 'jsonImage'):
+    img = open('Flatirons_Winter_Sunrise_edit_2.jpg', 'rb').read()
+
+    if args.cmd == 'jsonImage':
+        encoded = base64.b64encode(img).decode('ascii')
+
 
 # ---------------------------------------------------------
 # Perform requested operation
@@ -107,7 +145,7 @@ if args.cmd == 'rawImage':
     start = time.perf_counter()
 
     for x in range(args.reps):
-        doRawImage(addr, debug=args.debug)
+        doRawImage(addr, img, debug=args.debug)
 
     delta = ((time.perf_counter() - start) / args.reps) * 1000
     print("Took", delta, "ms per operation")
@@ -129,7 +167,7 @@ elif args.cmd == 'jsonImage':
     start = time.perf_counter()
 
     for x in range(args.reps):
-        doJsonImage(addr, debug=args.debug)
+        doJsonImage(addr, encoded, debug=args.debug)
 
     delta = ((time.perf_counter() - start) / args.reps) * 1000
     print("Took", delta, "ms per operation")
@@ -140,7 +178,7 @@ elif args.cmd == 'dotProduct':
     start = time.perf_counter()
 
     for x in range(args.reps):
-        doDotProduct(addr, debug=args.debug)
+        doDotProduct(addr, a, b, debug=args.debug)
 
     delta = ((time.perf_counter() - start) / args.reps) * 1000
     print("Took", delta, "ms per operation")
